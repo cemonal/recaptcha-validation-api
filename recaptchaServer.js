@@ -25,12 +25,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(helmet()); // Adds several production-level security measures
 
-// Implement rate limiting to prevent abuse
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // Limit each IP to 100 requests per windowMs
-});
-app.use(limiter);
+const rateLimitConfig = config.rateLimit;
+
+if (rateLimitConfig && rateLimitConfig.active) {
+  const limiter = rateLimit({
+    windowMs: rateLimitConfig.windowMs || 15 * 60 * 1000,
+    max: rateLimitConfig.max || 100
+  });
+  app.use(limiter);
+}
 
 // Load external configuration from JSON
 const config = JSON.parse(fs.readFileSync('config.json', 'utf8'));
@@ -90,7 +93,7 @@ async function validateRecaptcha(domain, token) {
     throw new Error('Domain not found in config.');
   }
 
-  const response = await axios.post('https://www.google.com/recaptcha/api/siteverify', {
+  const response = await axios.post('https://recaptcha.net/recaptcha/api/siteverify', {
     params: {
       secret: domainConfig.secretKey,
       response: token
