@@ -32,6 +32,7 @@ if (rateLimitConfig && rateLimitConfig.active) {
     windowMs: rateLimitConfig.windowMs || 15 * 60 * 1000,
     max: rateLimitConfig.max || 100
   });
+
   app.use(limiter);
 }
 
@@ -55,6 +56,7 @@ const corsOptions = {
     }
   }
 };
+
 app.use(cors(corsOptions));
 
 // Define common HTTP request headers for outgoing requests
@@ -89,11 +91,14 @@ function isIPAllowed(ip) {
  */
 async function validateRecaptcha(domain, token) {
   const domainConfig = config.domains.find(d => domain.endsWith(d.name));
+
   if (!domainConfig) {
     throw new Error('Domain not found in config.');
   }
 
-  const response = await axios.post('https://recaptcha.net/recaptcha/api/siteverify', {
+  const recaptchaEndpoint = config.recaptchaEndpoint || 'https://www.google.com/recaptcha/api/siteverify';
+
+  const response = await axios.post(recaptchaEndpoint, {
     params: {
       secret: domainConfig.secretKey,
       response: token
@@ -116,7 +121,7 @@ app.post('/validate', async (req, res) => {
   const clientIp = getClientIp(req);
 
   // Bypass validation if IP is whitelisted
-  if (isIPAllowed(clientIp)|| isLocalIp(clientIp)) {
+  if (isIPAllowed(clientIp) || isLocalIp(clientIp)) {
     logger.info(`Request from allowed IP: ${clientIp}`);
     return res.json({ success: true });
   }
