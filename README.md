@@ -1,6 +1,6 @@
 # reCAPTCHA Validator API
 
-This application serves as a backend API for validating reCAPTCHA tokens. It provides a secure and flexible solution for web applications looking to integrate reCAPTCHA validation without directly communicating with Google's or other reCAPTCHA services. The application can use different reCAPTCHA endpoints based on the region or other requirements.
+This application serves as a backend API for validating reCAPTCHA tokens. It provides a secure and flexible solution for web applications looking to integrate reCAPTCHA validation without directly communicating with Google's reCAPTCHA services. The application can use different reCAPTCHA endpoints based on the region or other requirements.
 
 ## Features
 
@@ -38,14 +38,49 @@ The application's settings are managed via a `config.json` file. Here's a brief 
 }
 ```
 
-### 4. Usage
-
-## Usage
+## Setup & Usage
 
 1. **Setup**: Clone the repository and install dependencies using `npm install`.
 2. **Configuration**: Modify the `config.json` file to suit your requirements.
 3. **Running the API**: Start the server using `node recaptchaServer.js`. It runs on port 3000 by default.
 4. **Making Requests**: Send a `POST` request to `/validate` with a JSON body containing the reCAPTCHA token. The response will be a JSON object indicating the validation result.
+
+### Making a Validate Request
+
+To validate a reCAPTCHA token, you need to make a POST request to the `/validate` endpoint.
+
+**Endpoint**:
+
+POST /validate
+
+**Required Parameters**:
+- `token`: The reCAPTCHA token you wish to validate.
+
+**Headers**:
+- `Origin`: This header should be set to the domain making the request. It's vital as the system uses this header to determine which domain configuration to apply for validation.
+
+**Example Request**:
+
+```javascript
+const axios = require('axios');
+
+const TOKEN = 'YOUR_RECAPTCHA_TOKEN';
+const API_ENDPOINT = 'http://localhost:3000/validate';
+
+axios.post(API_ENDPOINT, { token: TOKEN }, {
+  headers: {
+    'Origin': 'YOUR_DOMAIN'
+  }
+})
+.then(response => {
+  console.log(response.data);
+})
+.catch(error => {
+  console.error('Error validating reCAPTCHA token:', error);
+});
+```
+
+**Note:** Always make sure to pass the correct Origin header and reCAPTCHA token when making a request. The API relies on these to provide accurate validation.
 
 ## Logging
 
