@@ -40,15 +40,12 @@ The application's settings are managed via a `config.json` file. Here's a brief 
 
 ### 4. Usage
 
-```markdown
 ## Usage
 
 1. **Setup**: Clone the repository and install dependencies using `npm install`.
 2. **Configuration**: Modify the `config.json` file to suit your requirements.
 3. **Running the API**: Start the server using `node recaptchaServer.js`. It runs on port 3000 by default.
 4. **Making Requests**: Send a `POST` request to `/validate` with a JSON body containing the reCAPTCHA token. The response will be a JSON object indicating the validation result.
-
-```
 
 ## Logging
 

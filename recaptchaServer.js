@@ -27,7 +27,7 @@ app.use(helmet()); // Adds several production-level security measures
 
 const rateLimitConfig = config.rateLimit;
 
-if (rateLimitConfig && rateLimitConfig.active) {
+if (rateLimitConfig) {
   const limiter = rateLimit({
     windowMs: rateLimitConfig.windowMs || 15 * 60 * 1000,
     max: rateLimitConfig.max || 100
