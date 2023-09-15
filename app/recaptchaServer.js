@@ -144,7 +144,7 @@ function isLocalIp(ipAddress) {
 
 // Global error handler for logging and feedback
 app.use((err, req, res, next) => {
-  var ip = requestIp.getClientIp(req);
+  const ip = requestIp.getClientIp(req);
   logger.error(`${err.status || 500} - ${err.message} - ${req.originalUrl} - ${req.method} - ${ip}`);
   res.status(500).send('Something failed!');
 });
