@@ -3,15 +3,14 @@ const axios = require('axios');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const cors = require('cors');
-const { createLogger, format, transports } = require('winston');
 const requestIp = require('request-ip');
 const app = express();
-
-const NODE_ENV = process.env.NODE_ENV || 'development';
+const logger = require('./logger');
+const environment = process.env.NODE_ENV || 'development';
 
 // Load configuration based on environment
 let config;
-switch (NODE_ENV) {
+switch (environment) {
   case 'production':
     config = require('../config/config.production');
     break;
@@ -23,20 +22,10 @@ switch (NODE_ENV) {
 }
 
 // Disable TLS certificate validation in development mode
-if (NODE_ENV === "development")
+if (environment === "development")
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
-// Setup Winston Logger to handle both info and error logs
-const logger = createLogger({
-  format: format.combine(
-    format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-    format.printf(info => `${info.timestamp} ${info.level}: ${info.message}`)
-  ),
-  transports: [
-    new transports.File({ filename: `./logs/info-${new Date().toISOString().split('T')[0]}.log`, level: 'info' }),
-    new transports.File({ filename: `./logs/error-${new Date().toISOString().split('T')[0]}.log`, level: 'error' })
-  ]
-});
+const port = process.env.PORT || (config.port || 3000);
 
 // Middlewares for request parsing and security
 app.use(express.json());
@@ -91,11 +80,11 @@ function isIPAllowed(ip) {
  */
 async function validateRecaptcha(domain, token) {
   const domainConfig = config.domains.find(d => domain.endsWith(d.name));
-  
+
   if (!domainConfig) {
     throw new Error('Domain not found in config.');
   }
-  
+
   const recaptchaEndpoint = config.recaptchaEndpoint || 'https://www.google.com/recaptcha/api/siteverify';
   const response = await axios.post(recaptchaEndpoint, {
     params: {
@@ -161,7 +150,7 @@ app.use((err, req, res, next) => {
 });
 
 // Start the server
-app.listen(config.port, () => {
-  logger.info(`Server is running in ${NODE_ENV} mode and listening on port ${config.port}`);
-  console.log(`Server is running in ${NODE_ENV} mode and listening on port ${config.port}`);
+app.listen(port, () => {
+  logger.info(`Server is running in ${environment} mode and listening on port ${port}`);
+  console.log(`Server is running in ${environment} mode and listening on port ${port}`);
 });
