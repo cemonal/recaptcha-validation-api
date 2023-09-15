@@ -5,7 +5,7 @@
   "main": "recaptchaServer.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node recaptchaServer.js"
+    "start": "node app/recaptchaServer.js"
   },
   "repository": {
     "type": "git",
@@ -22,9 +22,8 @@
     "axios": "^1.5.0",
     "cors": "^2.8.5",
     "express": "^4.18.2",
-    "express-rate-limit": "^6.11.1",
+    "express-rate-limit": "^6.11.2",
     "helmet": "^7.0.0",
-    "https": "^1.0.0",
     "request-ip": "^3.3.0",
     "winston": "^3.10.0",
     "winston-daily-rotate-file": "^4.7.1"
