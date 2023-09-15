@@ -4,6 +4,7 @@
   "description": "An Express.js server designed to validate reCAPTCHA tokens with enhanced security features, such as CORS whitelisting, rate limiting, and request header verification.",
   "main": "recaptchaServer.js",
   "scripts": {
+    "dev": "nodemon app/recaptchaServer.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node app/recaptchaServer.js"
   },
@@ -27,5 +28,8 @@
     "request-ip": "^3.3.0",
     "winston": "^3.10.0",
     "winston-daily-rotate-file": "^4.7.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
   }
 }
