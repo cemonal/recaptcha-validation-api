@@ -1,18 +1,17 @@
-module.exports = {
-  domains: [
-    {
-      "name": "example.com",
-      "secretKey": "your_secret_key_here"
-    }
-  ],
-  allowedIPs: [
-    "127.0.0.1"
-  ],
-  rateLimit: {
-    windowMs: 900000,
-    max: 100,
-    active: true
-  },
-  recaptchaEndpoint: "https://recaptcha.net/recaptcha/api/siteverify",
-  port: 3000
+const environment = process.env.NODE_ENV || 'development';
+
+let config;
+
+// Load configuration based on environment
+switch (environment) {
+  case 'production':
+    config = require('./production');
+    break;
+  case 'test':
+    config = require('./test');
+    break;
+  default:
+    config = require('./development');
 }
+
+module.exports = config;

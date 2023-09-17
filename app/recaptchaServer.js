@@ -1,25 +1,13 @@
 const express = require('express');
-const axios = require('axios');
 const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const cors = require('cors');
-const requestIp = require('request-ip');
 const app = express();
-const logger = require('./logger');
+const logger = require('../utils/logger');
+const config = require('../config/config');
+const rateLimiter = require('../middlewares/rateLimiter');
+const { getClientIp, isLocalIp, isIPAllowed, requestIp } = require('../utils/ipUtils');
+const RecaptchaV2Service = require('../services/RecaptchaV2Service');
+const RecaptchaV3Service = require('../services/RecaptchaV3Service');
 const environment = process.env.NODE_ENV || 'development';
-
-// Load configuration based on environment
-let config;
-switch (environment) {
-  case 'production':
-    config = require('../config/config.production');
-    break;
-  case 'test':
-    config = require('../config/config.test');
-    break;
-  default:
-    config = require('../config/config');
-}
 
 // Disable TLS certificate validation in development mode
 if (environment === "development")
@@ -32,125 +20,63 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(helmet()); // Adds several production-level security measures
 
-// Request IP middleware
 app.use(requestIp.mw());
+rateLimiter.configure(app);
 
-// Rate limiting middleware
-const rateLimitConfig = config.rateLimit;
-if (rateLimitConfig) {
-  const limiter = rateLimit({
-    windowMs: rateLimitConfig.windowMs || 15 * 60 * 1000,
-    max: rateLimitConfig.max || 100
-  });
-  app.use(limiter);
-}
+const corsUtils = require('../utils/corsUtils');
+app.use(corsUtils);
 
-// CORS setup
-const whitelist = config.domains.map(d => d.name);
-const corsOptions = {
-  origin: function (origin, callback) {
-    if (!origin) {
-      logger.warn('Origin header is missing or undefined');
-      return;
-    }
-    if (whitelist.some(domain => origin.endsWith(domain))) {
-      callback(null, true);
-    } else {
-      logger.warn(`CORS policy violation by origin: ${origin}`);
-      callback(new Error('CORS policy: Not allowed by origin'), false);
-    }
-  }
-};
-app.use(cors(corsOptions));
+// Route to validate reCAPTCHA tokens using reCAPTCHA v2
+app.post('/v2/validate', async (req, res) => {
+  const clientIp = getClientIp(req);
 
-/**
- * Utility function to check if an IP address is allowed
- * @param {string} ip - The IP address
- * @returns {boolean}
- */
-function isIPAllowed(ip) {
-  return config.allowedIPs.includes(ip);
-}
-
-/**
- * Core function to validate reCAPTCHA token against Google's API
- * @param {string} domain - The domain making the request
- * @param {string} token - The reCAPTCHA token
- * @returns {Promise<boolean>}
- */
-async function validateRecaptcha(domain, token) {
-  const domainConfig = config.domains.find(d => domain.endsWith(d.name));
-
-  if (!domainConfig) {
-    throw new Error('Domain not found in config.');
-  }
-
-  const recaptchaEndpoint = config.recaptchaEndpoint || 'https://www.google.com/recaptcha/api/siteverify';
-  const response = await axios.post(recaptchaEndpoint, {
-    params: {
-      secret: domainConfig.secretKey,
-      response: token
-    }
-  });
-
-  return response.data.success;
-}
-
-// Route to validate reCAPTCHA tokens
-app.post('/validate', async (req, res) => {
-  const token = req.body.token;
-  const domain = req.headers.origin;
-
-  // Early exit if token is missing
-  if (!token) {
-    return res.status(400).json({ success: false, message: 'Token is required.' });
-  }
-
-  const clientIp = requestIp.getClientIp(req);
-
-  // Bypass validation if IP is whitelisted or local
-  if (isIPAllowed(clientIp) || isLocalIp(clientIp)) {
+  // Bypass validation if IP is whitelisted or local and auto validation is enabled
+  if (isIPAllowed(clientIp) || (config.autoValidateLocalIp && isLocalIp(clientIp))) {
     logger.info(`Request from allowed IP: ${clientIp}`);
-    return res.json({ success: true });
+    return res.status(200).json({ success: true });
   }
 
-  // Otherwise, proceed with reCAPTCHA validation
+  // Otherwise, proceed with reCAPTCHA validation using v2
   try {
-    const isValid = await validateRecaptcha(domain, token);
-    return res.json({ success: isValid });
+    const recaptchaV2Service = new RecaptchaV2Service(req);
+    const response = await recaptchaV2Service.validate();
+    return res.status(response.status).json({ success: response.success, message: response.message });
   } catch (error) {
-    logger.error(`Validation error for domain ${domain}: ${error.message}`);
+    logger.error(`Validation error for IP ${clientIp}: ${error.message}`);
     return res.status(500).json({ success: false, message: error.message });
   }
 });
 
-/**
- * Function to determine if an IP address is local (localhost or a connected local network).
- * @param {string} ipAddress - The IP address to check.
- * @returns {boolean} - Returns true if the IP is local, otherwise false.
- */
-function isLocalIp(ipAddress) {
-  const localIPs = ['127.0.0.1', '0.0.0.0', '::1', '::ffff:127.0.0.1'];
-  const localIPRanges = ['192.168.', '10.', '172.'];
+/// Route to validate reCAPTCHA tokens using reCAPTCHA v3
+app.post('/v3/validate', async (req, res) => {
+  const clientIp = getClientIp(req);
 
-  if (localIPs.includes(ipAddress) || localIPRanges.some(range => ipAddress.startsWith(range))) {
-    return true;
+  // Bypass validation if IP is whitelisted or local and auto validation is enabled
+  if (isIPAllowed(clientIp) || (config.autoValidateLocalIp && isLocalIp(clientIp))) {
+    logger.info(`Request from allowed IP: ${clientIp}`);
+    return res.status(200).json({ success: true });
   }
-  if (ipAddress.startsWith('172.') && (parseInt(ipAddress.split('.')[1]) >= 16 && parseInt(ipAddress.split('.')[1]) <= 31)) {
-    return true;
+
+  // Otherwise, proceed with reCAPTCHA validation using v3
+  try {
+    const response = await RecaptchaV3Service.validate();
+    return res.status(response.status).json({ success: response.success, message: response.message });
+  } catch (error) {
+    logger.error(`Validation error for IP ${clientIp}: ${error.message}`);
+    return res.status(500).json({ success: false, message: error.message });
   }
-  return false;
-}
+});
 
 // Global error handler for logging and feedback
 app.use((err, req, res, next) => {
-  const ip = requestIp.getClientIp(req);
-  logger.error(`${err.status || 500} - ${err.message} - ${req.originalUrl} - ${req.method} - ${ip}`);
+  const clientIp = getClientIp(req);
+  logger.error(`${err.status || 500} - ${err.message} - ${req.originalUrl} - ${req.method} - ${clientIp}`);
   res.status(500).send('Something failed!');
 });
 
 // Start the server
-app.listen(port, () => {
+const server = app.listen(port, () => {
   logger.info(`Server is running in ${environment} mode and listening on port ${port}`);
-  console.log(`Server is running in ${environment} mode and listening on port ${port}`);
 });
+
+module.exports = { app, server }; 

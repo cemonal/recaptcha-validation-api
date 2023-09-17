@@ -1,118 +1,112 @@
-# reCAPTCHA Validator API
+# ReCAPTCHA Validation API
 
-This application serves as a backend API for validating reCAPTCHA tokens. It provides a secure and flexible solution for web applications looking to integrate reCAPTCHA validation without directly communicating with Google's reCAPTCHA services. The application can use different reCAPTCHA endpoints based on the region or other requirements.
+This API serves as a reCAPTCHA token validation service for web applications. It allows you to securely validate reCAPTCHA tokens without directly communicating with Google's reCAPTCHA services. This API is compatible with both reCAPTCHA v2 and v3.
 
 ## Features
 
-- **Dynamic Endpoint Configuration:** Ability to configure the reCAPTCHA endpoint. Uses `https://www.google.com/recaptcha/api/siteverify` by default.
-- **IP Whitelisting:** Bypass validation for specific IP addresses defined in the configuration.
-- **CORS Handling:** Define a whitelist of domains that can access the API.
-- **Rate Limiting:** To prevent abuse of the API, rate limiting is applied per IP.
-- **Logging:** Comprehensive logging of information and errors, facilitating easier debugging and monitoring.
+- **Dynamic Configuration:** Easily configure the reCAPTCHA endpoint and domain settings.
+- **IP Whitelisting:** Allow specific IP addresses to bypass reCAPTCHA validation.
+- **CORS Support:** Define a whitelist of domains that can access the API.
+- **Rate Limiting:** Implement rate limiting to prevent abuse of the API.
+- **Logging:** Comprehensive logging for monitoring and debugging.
 
 ## Configuration
 
-The application's settings are managed via a `config.json` file. Here's a brief overview of the configuration options:
+The API's settings are managed via a `config.js` file. Here's an overview of the available configuration options:
 
-- `recaptchaEndpoint`: The endpoint used for reCAPTCHA validation. If left blank, the default is `https://www.google.com/recaptcha/api/siteverify`.
-- `domains`: An array of domain configurations. Each domain has a `name` and its associated `secretKey` for reCAPTCHA.
-- `allowedIPs`: An array of IP addresses that can bypass the reCAPTCHA validation.
-- `rateLimit`: Configuration for rate limiting. If set to `null`, rate limiting is disabled.
+- `recaptchaEndpoint`: The reCAPTCHA verification endpoint URL. You can use Google's `https://www.google.com/recaptcha/api/siteverify` or alternative endpoints like `https://recaptcha.net/recaptcha/api/siteverify` in regions where Google services are restricted.
+- `domains`: An array of domain configurations with `name`, `secretKeyV2`, `secretKeyV3`, and `scoreThreshold`.
+- `allowedIPs`: An array of IP addresses that can bypass reCAPTCHA validation.
+- `rateLimit`: Rate limiting configuration with `windowMs`, `maxRequests`, and `active`.
+- `port`: The port on which the API server will run.
+- `autoValidateLocalIp`: Enable automatic validation for local IP addresses.
 
-**Example Configuration:**
-
-```json
-{
-  "recaptchaEndpoint": "https://recaptcha.net/recaptcha/api/siteverify",
-  "domains": [
-    {
-      "name": "example.com",
-      "secretKey": "YOUR_SECRET_KEY"
-    }
-  ],
-  "allowedIPs": ["127.0.0.1"],
-  "rateLimit": {
-    "windowMs": 900000,
-    "max": 100
-  }
-}
-```
-
-## Setup & Usage
-
-1. **Setup**: Clone the repository and install dependencies using `npm install`.
-2. **Configuration**: Modify the `config.json` file to suit your requirements.
-3. **Running the API**: Start the server using `node recaptchaServer.js`. It runs on port 3000 by default.
-4. **Making Requests**: Send a `POST` request to `/validate` with a JSON body containing the reCAPTCHA token. The response will be a JSON object indicating the validation result.
-
-### Making a Validate Request
-
-To validate a reCAPTCHA token, you need to make a POST request to the `/validate` endpoint.
-
-**Endpoint**:
-
-POST /validate
-
-**Required Parameters**:
-- `token`: The reCAPTCHA token you wish to validate.
-
-**Headers**:
-- `Origin`: This header should be set to the domain making the request. It's vital as the system uses this header to determine which domain configuration to apply for validation.
-
-**Example Request**:
+**Example Configuration (`config.js`):**
 
 ```javascript
-const axios = require('axios');
+module.exports = {
+  recaptchaEndpoint: "https://www.google.com/recaptcha/api/siteverify",
+  domains: [
+    {
+      name: "example.com",
+      secretKeyV2: "YOUR_SECRET_KEY_V2",
+      secretKeyV3: "YOUR_SECRET_KEY_V3",
+      scoreThreshold: 0.5,
+    },
+  ],
+  allowedIPs: ["127.0.0.1"],
+  rateLimit: {
+    windowMs: 900000,
+    maxRequests: 100,
+    active: true,
+  },
+  port: 3000,
+  autoValidateLocalIp: true,
+};
 
-const TOKEN = 'YOUR_RECAPTCHA_TOKEN';
-const API_ENDPOINT = 'http://localhost:3000/validate';
-
-axios.post(API_ENDPOINT, { token: TOKEN }, {
-  headers: {
-    'Origin': 'YOUR_DOMAIN'
-  }
-})
-.then(response => {
-  console.log(response.data);
-})
-.catch(error => {
-  console.error('Error validating reCAPTCHA token:', error);
-});
 ```
 
-**Note:** Always make sure to pass the correct Origin header and reCAPTCHA token when making a request. The API relies on these to provide accurate validation.
+## Getting Started
+
+1. **Clone the Repository**: Clone this repository to your local machine.
+2. **Install Dependencies**: Run `npm install` to install the required dependencies.
+3. **Configure Settings**: Modify the `config.js` file to match your reCAPTCHA keys and other settings.
+4. **Start the API**: Run `node recaptchaServer.js` to start the API server.
+
+## API Endpoints
+
+The API provides the following endpoints for reCAPTCHA token validation:
+
+### Validate reCAPTCHA V2 Tokens (POST /v2/validate)
+
+- **Request Body**:
+  - `token` (string, required): The reCAPTCHA V2 token to validate.
+
+- **Headers**:
+  - `Origin` (string, required): Set this header to the domain making the request. It's essential for determining the domain configuration for validation.
+
+- **Response**:
+  - HTTP Status: 200 OK if the validation is successful.
+  - HTTP Status: 400 Bad Request if the `token` is missing or invalid.
+  - HTTP Status: 400 Bad Request if the `Origin` header is missing.
+  - HTTP Status: 500 Internal Server Error if there's a validation error.
+
+### Validate reCAPTCHA V3 Tokens (POST /v3/validate)
+
+- **Request Body**:
+  - `token` (string, required): The reCAPTCHA V3 token to validate.
+  - `action` (string, optional): The action identifier for the reCAPTCHA.
+
+- **Headers**:
+  - `Origin` (string, required): Set this header to the domain making the request. It's essential for determining the domain configuration for validation.
+
+- **Response**:
+  - HTTP Status: 200 OK if the validation is successful.
+  - HTTP Status: 400 Bad Request if the `token` is missing or invalid.
+  - HTTP Status: 400 Bad Request if the `Origin` header is missing.
+  - HTTP Status: 500 Internal Server Error if there's a validation error.
 
 ## Logging
 
-The application uses the `winston` library for logging. Logs are segregated into `info` and `error` categories, each having its own daily log file. The logs provide insights into:
-
-- CORS violations
-- IP addresses accessing the API
-- Validation errors
-- General information and server start logs
-
-Logs are stored in the `logs` directory with filenames indicating their creation date and category, e.g., `info-2023-09-12.log`.
+This API uses the `winston` library for logging. Log files are categorized as `info` and `error`, and they provide detailed information about API requests, errors, and server start logs. Log files are stored in the `logs` directory.
 
 ## Security
 
-Security measures have been implemented including:
-
-- **Helmet**: This application uses the `helmet` middleware, which sets many HTTP headers securely to protect from well-known web vulnerabilities.
-- **Rate Limiting**: To safeguard against abuse and DDoS attacks, rate limiting is applied per IP. This can be configured based on your needs.
-- **CORS Policies**: Only whitelisted domains can access the API, preventing unauthorized access or misuse.
-- **IP Whitelisting**: Certain IP addresses can be whitelisted to bypass the reCAPTCHA validation. This ensures trusted entities have unrestricted access.
+- **Helmet Middleware**: This application uses the `helmet` middleware to enhance security by setting various HTTP headers.
+- **Rate Limiting**: Rate limiting is applied to prevent abuse of the API.
+- **CORS Policies**: Only whitelisted domains can access the API.
+- **IP Whitelisting**: You can whitelist specific IP addresses to bypass reCAPTCHA validation.
 
 ## Contributions
 
-We welcome contributions to the reCAPTCHA Validator API! Here's how you can contribute:
+Contributions to this project are welcome. To contribute:
 
-1. **Fork the Repository**: Start by forking [the repository](#) (Link to your GitHub repo).
-2. **Create a New Branch**: Create a new branch for your feature or bugfix.
-3. **Make Your Changes**: Implement and test your changes. Ensure you follow coding standards and best practices.
-4. **Submit a Pull Request**: Once you're satisfied with your changes, submit a pull request. Make sure to describe your changes in detail.
-5. **Review**: Your pull request will be reviewed, and if everything looks good, it will be merged into the main branch.
+1. Fork the repository.
+2. Create a new branch for your feature or bugfix.
+3. Make your changes and follow coding standards.
+4. Submit a pull request with a detailed description of your changes.
 
-Your contributions, big or small, are highly appreciated!
+Your contributions, whether small or large, are highly appreciated.
 
 ## References
 

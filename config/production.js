@@ -2,7 +2,9 @@ module.exports = {
   domains: [
     {
       "name": "example.com",
-      "secretKey": "your_secret_key_here"
+      "secretKeyV2": "your_secret_key_here",
+      "secretKeyV3": "your_secret_key_here",
+      "scoreThreshold": 0.5
     }
   ],
   allowedIPs: [
@@ -13,5 +15,6 @@ module.exports = {
     active: true
   },
   recaptchaEndpoint: "https://recaptcha.net/recaptcha/api/siteverify",
-  port: 3000
+  port: 3000,
+  autoValidateLocalIp: false
 }
