@@ -1,7 +1,7 @@
 {
   "name": "recaptcha-validation-api",
   "version": "1.0.1",
-  "description": "An Express.js server designed to validate reCAPTCHA tokens with enhanced security features, such as CORS whitelisting, rate limiting, and request header verification.",
+  "description": "This API serves as a reCAPTCHA token validation service for web applications. It allows you to securely validate reCAPTCHA tokens without directly communicating with Google's reCAPTCHA services. This API is compatible with both reCAPTCHA v2 and v3.",
   "main": "recaptchaServer.js",
   "scripts": {
     "dev": "nodemon app/recaptchaServer.js",
