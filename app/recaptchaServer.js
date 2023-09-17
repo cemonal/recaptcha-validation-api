@@ -25,6 +25,7 @@ rateLimiter.configure(app);
 
 const corsUtils = require('../utils/corsUtils');
 app.use(corsUtils);
+app.use(timingMiddleware);
 
 // Route to validate reCAPTCHA tokens using reCAPTCHA v2
 app.post('/v2/validate', async (req, res) => {
