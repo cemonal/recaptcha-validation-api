@@ -4,6 +4,7 @@ const app = express();
 const logger = require('../utils/logger');
 const config = require('../config/config');
 const rateLimiter = require('../middlewares/rateLimiter');
+const timingMiddleware = require('../middlewares/timingMiddleware');
 const { getClientIp, isLocalIp, isIPAllowed, requestIp } = require('../utils/ipUtils');
 const RecaptchaV2Service = require('../services/RecaptchaV2Service');
 const RecaptchaV3Service = require('../services/RecaptchaV3Service');
