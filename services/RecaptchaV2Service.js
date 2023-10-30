@@ -1,3 +1,7 @@
+const axios = require('axios');
+const config = require('../config/config');
+const logger = require('../utils/logger');
+
 /**
  * A service for validating reCAPTCHA v2 tokens.
  */
